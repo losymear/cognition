@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字桩记忆训练</title>
+    <style>
+        /* 简单的 CSS 样式 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f8f8;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007aff;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .data-status {
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        .menu-list {
+            list-style: none;
+            padding: 0;
+        }
+        .menu-item {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .menu-item:hover {
+            background-color: #e5e5e5;
+        }
+        .menu-item-title {
+            font-weight: bold;
+            font-size: 18px;
+            color: #333;
+        }
+        .menu-item-detail {
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+        }
+        .current-view {
+            display: none; /* 默认隐藏所有功能页，只显示菜单 */
+            padding-top: 20px;
+        }
+        .current-view.active {
+            display: block;
+        }
+        input[type="number"], button {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007aff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #005bb5;
+        }
+        .result-box {
+            background-color: #f0f8ff;
+            border: 1px solid #cfe2ff;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .result-title {
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        .btn-red {
+            background-color: #ff3b30;
+        }
+        .btn-red:hover:not(:disabled) {
+            background-color: #cc2d26;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 id="main-title">数字桩记忆训练</h1>
+    <div class="data-status" id="data-status">数据: 缺失</div>
+
+    <div id="menu-page" class="current-view active">
+        <ul class="menu-list">
+            <li class="menu-item" onclick="handleMenuSelect(0)">
+                <div class="menu-item-title">🧠 1. 单次随机训练</div>
+                <div class="menu-item-detail">随机一个数字，确认后显示编码</div>
+            </li>
+            <li class="menu-item" onclick="handleMenuSelect(1)">
+                <div class="menu-item-title">🔢 2. 多重数字记忆</div>
+                <div class="menu-item-detail">输入数量 N，随机 N 个数字组进行记忆</div>
+            </li>
+            <li class="menu-item" onclick="handleMenuSelect(2)">
+                <div class="menu-item-title">🔍 3. 查询桩子</div>
+                <div class="menu-item-detail">输入数字，立即显示对应编码</div>
+            </li>
+        </ul>
+    </div>
+
+    <div id="input-page" class="current-view">
+        <div class="result-title" id="input-page-title"></div>
+        <input type="number" id="input-field" placeholder="" oninput="validateInput()">
+        <button id="input-submit-btn" onclick="handleInputSubmit()">确定</button>
+        <button onclick="showMenuUI()">返回主菜单</button>
+    </div>
+
+    <div id="result-page" class="current-view">
+        <div class="result-title" id="result-page-title"></div>
+        <div class="result-box" id="result-page-content"></div>
+        <button id="result-next-btn" class="btn-red" onclick="handleResultNext()">继续此项操作</button>
+        <button onclick="showMenuUI()">返回主菜单</button>
+    </div>
+</div>
+
+<script>
+    // ======================================================
+    // Web 实现 JavaScript 逻辑
+    // ======================================================
+
+    // 🎯 您的 GitHub Raw JSON URL
+    const JSON_URL = "https://raw.githubusercontent.com/losymear/cognition/refs/heads/main/files/json/1000code.json";
+    // 💾 本地缓存的 Storage Key
+    const CACHE_KEY = "1000code_cache";
+
+    let number_encodings = {};
+    const MIN_NUM = 100;
+    const MAX_NUM = 999;
+    let currentPageType = ""; // 用于记录当前输入页是 'multi' 还是 'query'
+    let nextActionCallback = null; // 用于结果页的“继续此项操作”回调
+
+    // --- DOM 元素引用 ---
+    const menuPage = document.getElementById('menu-page');
+    const inputPage = document.getElementById('input-page');
+    const resultPage = document.getElementById('result-page');
+    const dataStatus = document.getElementById('data-status');
+    const mainTitle = document.getElementById('main-title');
+
+    const inputPageTitle = document.getElementById('input-page-title');
+    const inputField = document.getElementById('input-field');
+    const inputSubmitBtn = document.getElementById('input-submit-btn');
+
+    const resultPageTitle = document.getElementById('result-page-title');
+    const resultPageContent = document.getElementById('result-page-content');
+    const resultNextBtn = document.getElementById('result-next-btn');
+
+    // --- 核心辅助函数 (适应 Web) ---
+
+    function toast(message) {
+        // 简单的 Web Toast 提示（这里使用 alert 替代，实际应用中可用自定义的 Toast 组件）
+        console.log("Toast:", message);
+        // alert(message); // 避免频繁弹出，仅在关键错误时使用
+    }
+
+    function generateRandomNumber() {
+        const randomNumber = Math.floor(Math.random() * (MAX_NUM - MIN_NUM + 1)) + MIN_NUM;
+        return String(randomNumber);
+    }
+
+    function getEncoding(numStr) {
+        return number_encodings[numStr] || `[${numStr} 编码缺失!]`;
+    }
+
+    // --- 界面切换逻辑 ---
+
+    function hideAllViews() {
+        menuPage.classList.remove('active');
+        inputPage.classList.remove('active');
+        resultPage.classList.remove('active');
+    }
+
+    function showMenuUI() {
+        hideAllViews();
+        menuPage.classList.add('active');
+        // 更新主标题的数据状态
+        const statusText = Object.keys(number_encodings).length ? "已加载" : "缺失";
+        mainTitle.textContent = `数字桩记忆训练`;
+        dataStatus.textContent = `数据: ${statusText}`;
+    }
+
+    /**
+     * 相当于 JSBox 的 showInputPage
+     */
+    function showInputPage(type) {
+        currentPageType = type;
+        hideAllViews();
+        inputPage.classList.add('active');
+
+        const isMulti = type === "multi";
+        const pageTitle = isMulti ? "输入多重记忆数量 N" : "输入查询数字";
+        const placeholder = isMulti ? "请输入数量 N (1-20)" : `请输入 ${MIN_NUM} 到 ${MAX_NUM} 的数字`;
+
+        inputPageTitle.textContent = pageTitle;
+        inputField.placeholder = placeholder;
+        inputField.value = "";
+        inputField.setAttribute('min', isMulti ? 1 : MIN_NUM);
+        inputField.setAttribute('max', isMulti ? 20 : MAX_NUM);
+        inputField.focus();
+        validateInput(); // 初始禁用按钮
+    }
+
+    function validateInput() {
+        const input = inputField.value.trim();
+        inputSubmitBtn.disabled = input === "";
+    }
+
+    /**
+     * 相当于 JSBox 的 showResultUI
+     */
+    function showResultUI(title, message, nextAction) {
+        nextActionCallback = nextAction;
+        hideAllViews();
+        resultPage.classList.add('active');
+
+        resultPageTitle.textContent = title;
+        resultPageContent.textContent = message;
+
+        if (nextAction) {
+            resultNextBtn.textContent = "继续此项操作";
+            resultNextBtn.style.display = 'block';
+            resultNextBtn.classList.add('btn-red');
+        } else {
+            resultNextBtn.style.display = 'none';
+        }
+    }
+
+    // --- 核心功能实现 (适应 Web) ---
+
+    function drillRandomNumber() {
+        if (!Object.keys(number_encodings).length) {
+            alert("⚠️ 错误: 数据未加载，请等待数据缓存或检查网络。");
+            return;
+        }
+
+        const targetNumber = generateRandomNumber();
+        const correctAnswer = getEncoding(targetNumber);
+
+        const userConfirmed = confirm(`🧠 随机数字训练\n\n请默想数字 ${targetNumber} 对应的编码。准备好了吗？\n\n点击“确定”查看编码，点击“取消”返回菜单。`);
+
+        if (userConfirmed) {
+            showResultUI(`✅ ${targetNumber} 的编码`,
+                `数字: ${targetNumber}\n\n编码: ${correctAnswer}`,
+                drillRandomNumber);
+        } else {
+            showMenuUI();
+        }
+    }
+
+    function drillMultipleNumbers(N) {
+        const N_val = parseInt(N);
+
+        const numbers = new Set();
+        while (numbers.size < N_val) {
+            numbers.add(generateRandomNumber());
+        }
+        const numberList = Array.from(numbers);
+
+        const formattedList = numberList.map(numStr => {
+            const encoding = getEncoding(numStr);
+            return `${numStr}: ${encoding}`;
+        }).join('\n');
+
+        const plainNumberList = numberList.join(', ');
+
+        const userConfirmed = confirm(`🧠 ${N_val} 个数字随机训练\n\n请尝试联想并记忆这组数字：\n**${plainNumberList}**\n\n准备好了吗？\n\n点击“确定”查看答案，点击“取消”返回菜单。`);
+
+        if (userConfirmed) {
+            showResultUI("✅ 编码答案",
+                `**数字列表:**\n${formattedList}`,
+                () => showInputPage("multi") // 下一步回到多重记忆的输入页
+            );
+        } else {
+            showMenuUI();
+        }
+    }
+
+    // --- 事件处理函数 ---
+
+    function handleMenuSelect(index) {
+        if (!Object.keys(number_encodings).length) {
+            alert("⚠️ 错误: 数据未加载，请等待数据缓存或检查网络。");
+            return;
+        }
+        switch (index) {
+            case 0:
+                drillRandomNumber();
+                break;
+            case 1:
+                showInputPage("multi");
+                break;
+            case 2:
+                showInputPage("query");
+                break;
+        }
+    }
+
+    function handleInputSubmit() {
+        const input = inputField.value.trim();
+
+        if (input === "") {
+            toast("输入不能为空");
+            return;
+        }
+
+        if (currentPageType === "multi") {
+            const N = parseInt(input);
+            if (N > 0 && N <= 20) {
+                drillMultipleNumbers(N);
+            } else {
+                alert("错误: 请输入 1 到 20 之间的有效数字。");
+                showInputPage("multi");
+            }
+        } else if (currentPageType === "query") {
+            const numStr = input;
+            const num = parseInt(numStr);
+            if (num >= MIN_NUM && num <= MAX_NUM) {
+                const encoding = getEncoding(numStr);
+                showResultUI(`🔎 ${numStr} 对应的编码`,
+                    `数字: ${numStr}\n\n编码: ${encoding}`,
+                    () => showInputPage("query") // 下一步回到查询输入页
+                );
+            } else {
+                alert(`⚠️ 数字错误: 请输入有效的 ${MIN_NUM} 到 ${MAX_NUM} 的数字。`);
+                showInputPage("query");
+            }
+        }
+    }
+
+    function handleResultNext() {
+        if (nextActionCallback) {
+            nextActionCallback();
+        } else {
+            showMenuUI();
+        }
+    }
+
+    // --- 核心加载与更新逻辑 (适应 Web) ---
+
+    function loadFromCache() {
+        const jsonStr = localStorage.getItem(CACHE_KEY);
+        if (jsonStr) {
+            try {
+                number_encodings = JSON.parse(jsonStr);
+                toast("使用本地缓存数据。");
+                return true;
+            } catch (e) {
+                console.error("解析本地缓存失败:", e);
+                localStorage.removeItem(CACHE_KEY);
+                return false;
+            }
+        }
+        return false;
+    }
+
+    async function updateFromRemote(isInitialLoad) {
+        if (isInitialLoad) {
+            dataStatus.textContent = "数据: 正在加载...";
+        }
+
+        try {
+            const response = await fetch(JSON_URL);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const newEncodings = await response.json();
+
+            if (JSON.stringify(newEncodings) !== JSON.stringify(number_encodings)) {
+                number_encodings = newEncodings;
+                localStorage.setItem(CACHE_KEY, JSON.stringify(newEncodings));
+                toast("数据已更新并保存到本地缓存。");
+                dataStatus.textContent = "数据: 已加载";
+            } else {
+                if (!isInitialLoad) {
+                    toast("数据已是最新版本。");
+                }
+            }
+            return true;
+
+        } catch (error) {
+            console.error("加载/更新远程数据失败:", error);
+            if (isInitialLoad && !Object.keys(number_encodings).length) {
+                alert(`❌ 首次加载失败: 无法从 GitHub 加载数据，请检查网络和 URL。\n\n错误信息: ${error.message}`);
+                dataStatus.textContent = "数据: 缺失";
+            } else if (!isInitialLoad) {
+                toast("网络不佳，未能更新数据。");
+            }
+            return false;
+        }
+    }
+
+    // --- 脚本主流程 ---
+
+    async function init() {
+        const cacheLoaded = loadFromCache();
+
+        if (cacheLoaded) {
+            showMenuUI();
+            await updateFromRemote(false); // 异步更新
+        } else {
+            const success = await updateFromRemote(true);
+            showMenuUI(); // 无论成功与否，都显示菜单，让用户看到数据状态
+        }
+    }
+
+    // 启动脚本
+    init();
+</script>
+</body>
+</html>
