@@ -2,8 +2,9 @@
 
 
 /memo目录  需要多看看的笔记
-files/json/1000code.json  1000数字桩。可以修改。
+files/json/1000code.json  1000数字桩。由大模型根据常用词汇生成。
 files/json/config.json  配置文件。比如maxMemoId记录的是memo最大id
+files/json/1000story.json  1000数字桩故事，大模型生成
 
 
 https://www.losymear.top/digitalpile/ 数字桩游戏
