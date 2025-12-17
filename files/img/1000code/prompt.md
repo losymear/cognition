@@ -1,0 +1,17 @@
+使用nano babana生成，提示词分镜由gemini生成。
+
+
+```code
+艺术风格： 极具表现力的国风漫画风格，强调手绘墨水和毛笔的粗糙质感，不完美的线条，强烈的笔触变化。 色彩： 整体色调低饱和度、古朴、大地色、墨色调。带有水彩和水墨晕染的纹理。局部有高饱和度的金色或红色法术光效对比。 氛围： 神秘，史诗感，古代东方幻想。 细节： 纸张纹理颗粒感，戏剧性的光影，飘逸的衣摆，充满张力的构图。极具张力和表现主义色彩的中国玄幻漫画风格，类似独立漫画的画风。画面笔触粗犷，带有明显的手绘墨水质感和枯笔飞白效果，线条硬朗、不羁且富有动感。色彩上采用古朴的低饱和度复古色调，以大地色、赭石色、墨色为主，带有水彩晕染和陈旧纸张的颗粒纹理。
+彩色的。
+
+
+带上标题。
+
+【猫骑士的优惠券】
+AI Prompt:
+
+4-panel manga, style of 'Ri Yue Tong Cuo', whimsical slice of life.Panel 1: A girl labeled "371" looks at a pot of burnt coffee (Macchiato) labeled "370" on a gas stove labeled "372", making a gesture of having no money labeled "373".Panel 2: A knight with a cat head labeled "374" hands her a coupon made of wood fiber labeled "375".Panel 3: The coupon is for a Michelin tire-man restaurant labeled "376". She stands outside selling balloons labeled "377".Panel 4: The Knight waves goodbye saying he is busy labeled "378", pointing to a Mother's Day banner labeled "379".
+```
+
+AI prompt的分镜由gemini生成。
