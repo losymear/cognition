@@ -1,3 +1,9 @@
+import json
+from collections import Counter
+from pypinyin import lazy_pinyin
+
+# 您提供的原始 JSON 数据
+data_json = """
 {
   "100": "一点点",
   "101": " 伊甸园, 印度洋, 火箭少女101",
@@ -350,7 +356,6 @@
   "448": "碎碎冰",
   "449": "水世界",
   "450": "隋文帝",
-  "451": "三文鱼",
   "451": "三文鱼",
   "452": "守卫者",
   "453": "送外卖",
@@ -900,5 +905,39 @@
   "997": "狙击枪",
   "998": "急救包",
   "999": "999感冒灵"
-
 }
+"""
+
+data = json.loads(data_json)
+
+# 初始化统计容器: stats[数字][位置] = Counter()
+stats = {str(d): [Counter(), Counter(), Counter()] for d in range(10)}
+
+for num_str, val_str in data.items():
+    # 按照逗号分隔，取第一个词
+    word = val_str.split(',')[0].strip()
+    # 汉字转拼音列表
+    py_list = lazy_pinyin(word)
+
+    # 遍历该词的前三个拼音
+    for pos in range(min(3, len(num_str), len(py_list))):
+        digit = num_str[pos]
+        py = py_list[pos]
+        print(val_str,digit,pos,py)
+        stats[digit][pos][py] += 1
+
+# 打印表头
+print("| 数字 | 编码 | **百位 (开头)** | **十位 (中间)** | **个位 (结尾)** | 备注 |")
+print("| :---: | :---: | :--- | :--- | :--- | :--- |")
+
+encoding_map = {"1":"y", "2":"z", "3":"m", "4":"s", "5":"w", "6":"l", "7":"q", "8":"b", "9":"j", "0":"d"}
+
+for d in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
+    row = [f"**{d}**", encoding_map[d]]
+    for pos in range(3):
+        # 取出现频率最高的 3 个拼音
+        top_3 = stats[d][pos].most_common(3)
+        formatted = " ".join([f"{p}({c})" for p, c in top_3])
+        row.append(formatted if formatted else "-")
+    row.append("") # 备注留空
+    print("| " + " | ".join(row) + " |")
